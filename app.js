@@ -1,4 +1,4 @@
-const SUPABASE_URL = "https://peypgkgorkcczrpymguk.supabase.co";
+﻿const SUPABASE_URL = "https://peypgkgorkcczrpymguk.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBleXBna2dvcmtjY3pycHltZ3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NjM2MDYsImV4cCI6MjA5ODIzOTYwNn0.B7k6VkzjG2be5_CAumB0GFbfg-j2SX2AIS0FUomluc8";
 const SUPABASE_TABLE_URL = `${SUPABASE_URL}/rest/v1/stadtbefunde`;
@@ -38,8 +38,6 @@ const elements = {
   entryId: document.getElementById("entry-id"),
   city: document.getElementById("city-input"),
   region: document.getElementById("region-input"),
-  lat: document.getElementById("lat-input"),
-  lng: document.getElementById("lng-input"),
   category: document.getElementById("category-input"),
   entryStatus: document.getElementById("entry-status-input"),
   lemma: document.getElementById("lemma-input"),
@@ -274,8 +272,8 @@ function fillForm(entry) {
   elements.entryId.value = entry?.id || "";
   elements.city.value = entry?.ort || "";
   elements.region.value = entry?.region || "";
-  elements.lat.value = entry?.breitengrad ?? map.getCenter().lat.toFixed(4);
-  elements.lng.value = entry?.laengengrad ?? map.getCenter().lng.toFixed(4);
+
+
   elements.category.value = entry?.kategorie || "keine_daten";
   elements.entryStatus.value = entry?.status || "offen";
   elements.lemma.value = entry?.lemma || "";
@@ -336,8 +334,7 @@ function exportRows() {
   return state.entries.map((entry) => ({
     Ort: entry.ort,
     Region: entry.region,
-    Breitengrad: entry.breitengrad,
-    Laengengrad: entry.laengengrad,
+
     Kategorie: CATEGORY_CONFIG[entry.kategorie].label,
     Lemma: entry.lemma,
     Belegform: entry.belegform,
@@ -371,12 +368,17 @@ function exportXlsx() {
 }
 
 function readFormData() {
+  const existingEntry = state.entries.find((item) => item.id === elements.entryId.value);
+  const coordinates = existingEntry
+    ? { breitengrad: existingEntry.breitengrad, laengengrad: existingEntry.laengengrad }
+    : { breitengrad: map.getCenter().lat, laengengrad: map.getCenter().lng };
+
   return {
     id: elements.entryId.value || crypto.randomUUID(),
     ort: elements.city.value.trim(),
     region: elements.region.value.trim(),
-    breitengrad: Number(elements.lat.value),
-    laengengrad: Number(elements.lng.value),
+    breitengrad: Number(coordinates.breitengrad.toFixed(4)),
+    laengengrad: Number(coordinates.laengengrad.toFixed(4)),
     kategorie: elements.category.value,
     lemma: elements.lemma.value.trim(),
     belegform: elements.attestation.value.trim(),
@@ -502,10 +504,7 @@ function bindEvents() {
     fitMapToFiltered();
   });
 
-  map.on("click", (event) => {
-    elements.lat.value = event.latlng.lat.toFixed(4);
-    elements.lng.value = event.latlng.lng.toFixed(4);
-  });
+
 }
 
 async function init() {
@@ -517,3 +516,5 @@ async function init() {
 }
 
 init();
+
+
