@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Prefix RE in Latin and Romance</title>
+    <meta
+      name="description"
+      content="Interaktive Forschungs-Karte zur Erfassung italienischer Stadtbefunde fuer Verben mit ar-, re- oder ri-Anfang."
+    />
+    <link
+      rel="stylesheet"
+      href="./vendor/leaflet.css"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./vendor/leaflet.js"></script>
+    <script defer src="./vendor/xlsx.full.min.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Linguistische Forschungsoberflaeche</p>
+          <h1>The Prefix RE in Latin and Romance</h1>
+          <p class="lead">
+            Erfasse fuer jede Stadt, ob relevante Verben mit <strong>ar-</strong> statt
+            <strong>re-</strong> oder <strong>ri-</strong> beginnen, und visualisiere die
+            Verteilung direkt auf der Karte.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button id="new-entry-button" class="button button-primary" type="button">Neuen Ort anlegen</button>
+          <button id="fit-map-button" class="button button-ghost" type="button">Auf Filter zoomen</button>
+        </div>
+      </header>
+
+      <section class="stats-grid" id="stats-grid" aria-label="Statistik"></section>
+
+      <main class="workspace">
+        <section class="map-panel card">
+          <div class="section-head">
+            <div>
+              <p class="section-label">Karte</p>
+              <h2>Raeumliche Verteilung</h2>
+            </div>
+            <p class="section-hint">Klick auf Marker oder Tabellenzeile oeffnet den Befund.</p>
+          </div>
+          <div id="map" aria-label="Interaktive Karte von Italien"></div>
+          <div class="legend" id="legend"></div>
+        </section>
+
+        <aside class="sidebar">
+          <section class="card">
+            <div class="section-head">
+              <div>
+                <p class="section-label">Filter</p>
+                <h2>Recherche</h2>
+              </div>
+              <button id="reset-filters-button" class="text-button" type="button">Zuruecksetzen</button>
+            </div>
+
+            <label class="field">
+              <span>Suche</span>
+              <input id="search-input" type="search" placeholder="Ort, Lemma, Quelle oder Kommentar" />
+            </label>
+
+            <label class="field">
+              <span>Region</span>
+              <select id="region-filter"></select>
+            </label>
+
+            <label class="field">
+              <span>Status</span>
+              <select id="status-filter">
+                <option value="alle">Alle</option>
+                <option value="offen">Offen</option>
+                <option value="geprueft">Geprueft</option>
+              </select>
+            </label>
+
+            <fieldset class="checkbox-group">
+              <legend>Kategorien</legend>
+              <label><input type="checkbox" value="ar" checked /> ar-</label>
+              <label><input type="checkbox" value="re_ri" checked /> re-/ri-</label>
+              <label><input type="checkbox" value="beide" checked /> beide</label>
+              <label><input type="checkbox" value="unklar" checked /> unklar</label>
+              <label><input type="checkbox" value="keine_daten" checked /> keine Daten</label>
+            </fieldset>
+          </section>
+
+          <section class="card">
+            <div class="section-head">
+              <div>
+                <p class="section-label">Export</p>
+                <h2>Datenausgabe</h2>
+              </div>
+            </div>
+            <div class="export-actions">
+              <button id="export-csv-button" class="button button-secondary" type="button">CSV exportieren</button>
+              <button id="export-xlsx-button" class="button button-secondary" type="button">XLSX exportieren</button>
+            </div>
+            <p class="section-hint">Alle aktuell gespeicherten Orte werden mit Koordinaten und Befunddaten exportiert.</p>
+          </section>
+        </aside>
+
+        <section class="table-panel card">
+          <div class="section-head">
+            <div>
+              <p class="section-label">Ortsliste</p>
+              <h2>Gefilterte Eintraege</h2>
+            </div>
+            <p id="table-count" class="section-hint"></p>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ort</th>
+                  <th>Region</th>
+                  <th>Kategorie</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="form-panel card">
+          <div class="section-head">
+            <div>
+              <p class="section-label">Befunderfassung</p>
+              <h2 id="form-title">Ort bearbeiten</h2>
+            </div>
+            <button id="reset-form-button" class="text-button" type="button">Formular leeren</button>
+          </div>
+
+          <form id="entry-form" class="entry-form">
+            <input id="entry-id" type="hidden" />
+
+            <div class="field-grid">
+              <label class="field">
+                <span>Ort</span>
+                <input id="city-input" name="ort" type="text" required />
+              </label>
+              <label class="field">
+                <span>Region</span>
+                <input id="region-input" name="region" type="text" required />
+              </label>
+              <label class="field">
+                <span>Breitengrad</span>
+                <input id="lat-input" name="breitengrad" type="number" step="0.0001" required />
+              </label>
+              <label class="field">
+                <span>Laengengrad</span>
+                <input id="lng-input" name="laengengrad" type="number" step="0.0001" required />
+              </label>
+              <label class="field">
+                <span>Kategorie</span>
+                <select id="category-input" name="kategorie" required>
+                  <option value="ar">ar-</option>
+                  <option value="re_ri">re-/ri-</option>
+                  <option value="beide">beide</option>
+                  <option value="unklar">unklar</option>
+                  <option value="keine_daten">keine Daten</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Status</span>
+                <select id="entry-status-input" name="status" required>
+                  <option value="offen">offen</option>
+                  <option value="geprueft">geprueft</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Lemma</span>
+                <input id="lemma-input" name="lemma" type="text" />
+              </label>
+              <label class="field">
+                <span>Belegform</span>
+                <input id="attestation-input" name="belegform" type="text" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Quelle</span>
+              <input id="source-input" name="quelle" type="text" placeholder="z. B. Ortsgrammatik, Korpus, Atlas" />
+            </label>
+
+            <label class="field">
+              <span>Kommentar</span>
+              <textarea id="comment-input" name="kommentar" rows="5" placeholder="Methodische Hinweise, Unsicherheiten, Vergleichsbefunde"></textarea>
+            </label>
+
+            <div class="form-meta">
+              <p id="updated-at" class="section-hint">Noch nicht gespeichert.</p>
+              <p class="section-hint">Tipp: Ein Klick auf die Karte uebernimmt Koordinaten in das Formular.</p>
+            </div>
+
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">Speichern</button>
+              <button id="delete-entry-button" class="button button-danger" type="button">Loeschen</button>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
