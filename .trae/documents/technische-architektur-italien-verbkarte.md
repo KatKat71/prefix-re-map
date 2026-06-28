@@ -5,9 +5,11 @@ flowchart TD
     B --> C["Kartenmodul mit Leaflet"]
     B --> D["Zustandsverwaltung für Orte und Filter"]
     B --> E["Import-/Exportmodul"]
-    D --> F["Lokaler Speicher im Browser"]
-    E --> G["CSV/XLSX-Dateien"]
-    C --> H["OpenStreetMap-Kachelquelle"]
+    B --> F["Supabase-Client"]
+    F --> G["Supabase Postgres"]
+    F --> H["REST-API und Auth-Kontext"]
+    E --> I["CSV/XLSX-Dateien"]
+    C --> J["OpenStreetMap-Kachelquelle"]
 ```
 
 ## 2. Technologiebeschreibung
@@ -15,7 +17,8 @@ flowchart TD
 - Styling: `Tailwind CSS 3` mit zusätzlichen CSS-Variablen für thematische Farben
 - Kartenbibliothek: `Leaflet` + `react-leaflet`
 - Datenaustausch: `xlsx` für Excel-Export, nativer CSV-Export für einfache Weitergabe
-- Persistenz: `localStorage` für lokale Sitzungs- und Projektdaten ohne externes Backend
+- Backend as a Service: `Supabase`
+- Persistenz: zentrale Speicherung in `Supabase Postgres`
 - Initialisierung: `Vite`
 
 ## 3. Routen-Definition
@@ -24,7 +27,7 @@ flowchart TD
 | / | Hauptansicht mit Karte, Filtern, Ortsliste und Befundformular |
 
 ## 4. API-Definitionen
-Da die erste Version lokal ohne Backend arbeitet, werden keine externen HTTP-APIs benötigt. Die zentrale Datenschnittstelle ist ein internes Frontend-Datenmodell.
+Die Anwendung nutzt Supabase direkt aus dem Frontend. In der ersten Mehrbenutzer-Version erfolgt die Bearbeitung ohne Login; Schreib- und Leserechte werden daher fuer den `anon`-Rollenpfad freigegeben.
 
 ```ts
 export type VerbKategorie = 'ar' | 're_ri' | 'beide' | 'unklar' | 'keine_daten';
@@ -52,6 +55,24 @@ export interface Filterzustand {
 }
 ```
 
+```ts
+export interface SupabaseStadtbefundRow {
+  id: string;
+  ort: string;
+  region: string;
+  breitengrad: number;
+  laengengrad: number;
+  kategorie: VerbKategorie;
+  belegform: string | null;
+  lemma: string | null;
+  quelle: string | null;
+  kommentar: string | null;
+  status: 'offen' | 'geprueft';
+  erstellt_am: string;
+  aktualisiert_am: string;
+}
+```
+
 ## 5. Datenmodell
 ### 5.1 Datenmodell-Definition
 ```mermaid
@@ -74,9 +95,11 @@ erDiagram
 
 ### 5.2 Daten- und Speicherlogik
 - Alle Datensätze werden als Array von `Stadtbefund`-Objekten im Browser gehalten.
-- Änderungen werden nach jedem Speichern automatisch in `localStorage` persistiert.
+- Die Quelldaten liegen zentral in der Tabelle `stadtbefunde` in Supabase.
+- Beim Start lädt das Frontend alle Datensätze aus Supabase und mappt sie in das Frontend-Modell.
+- Änderungen werden per `insert`, `update` und `delete` direkt nach Supabase geschrieben.
 - Export erzeugt aus dem aktuellen Datenbestand eine `CSV`- oder `XLSX`-Datei mit sprechenden Spaltennamen.
-- Die Architektur bleibt bewusst backendfrei, damit das Werkzeug lokal, datensparsam und unkompliziert im Forschungsalltag einsetzbar ist.
+- Fuer die erste Teamversion wird bewusst auf Login verzichtet, damit Kolleginnen sofort gemeinsam arbeiten koennen.
 
 ## 6. Komponentenstruktur
 - `AppShell`: Layout, Kopfbereich und globale Steuerung.
@@ -86,9 +109,12 @@ erDiagram
 - `EntryForm`: Formular für Erfassung und Bearbeitung eines Befunds.
 - `StatsBar`: Kennzahlen pro Kategorie und Gesamtmenge.
 - `exportUtils`: CSV/XLSX-Erzeugung und Dateinamenlogik.
+- `supabaseClient`: Initialisierung des Supabase-Clients mit Projekt-URL und `anon`-Key.
+- `entryRepository`: Laden, Speichern und Loeschen der zentralen Datensaetze.
 
 ## 7. Qualitäts- und Umsetzungsentscheidungen
 - Desktop-first, da die primäre Nutzung im Forschungs- und Büro-Kontext erfolgt.
-- Keine externe Datenbank in Version 1, um Komplexität und Wartungsaufwand gering zu halten.
+- Die zentrale Datenbank liegt in Supabase, damit mehrere Personen denselben Datenbestand nutzen.
 - Markerfarben und Legende müssen für die Kategorien konsistent und kontrastreich sein.
-- Alle Kernfunktionen müssen ohne Internetzugang für Datenspeicherung arbeiten; nur Kartenkacheln benötigen eine Verbindung.
+- Alle Kernfunktionen benoetigen fuer Laden und Speichern eine Internetverbindung zur Supabase-API; Kartenkacheln kommen weiterhin von OpenStreetMap.
+- RLS und Rechte muessen explizit fuer den `anon`-Zugriff gesetzt werden, da die App zunaechst ohne Login arbeitet.

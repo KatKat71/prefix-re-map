@@ -210,6 +210,29 @@ h2 {
   font-size: 0.95rem;
 }
 
+.status-note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(16, 24, 43, 0.08);
+}
+
+.status-note[data-state="loading"] {
+  color: #7a5a12;
+  background: rgba(237, 220, 171, 0.42);
+}
+
+.status-note[data-state="success"] {
+  color: #1d6a4d;
+  background: rgba(181, 231, 212, 0.44);
+}
+
+.status-note[data-state="error"] {
+  color: #8c2f31;
+  background: rgba(241, 194, 194, 0.42);
+}
+
 #map {
   height: 560px;
   border-radius: 22px;

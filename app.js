@@ -1,4 +1,7 @@
-const STORAGE_KEY = "verbkarte-italien-daten";
+const SUPABASE_URL = "https://peypgkgorkcczrpymguk.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBleXBna2dvcmtjY3pycHltZ3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NjM2MDYsImV4cCI6MjA5ODIzOTYwNn0.B7k6VkzjG2be5_CAumB0GFbfg-j2SX2AIS0FUomluc8";
+const SUPABASE_TABLE_URL = `${SUPABASE_URL}/rest/v1/stadtbefunde`;
 
 const CATEGORY_CONFIG = {
   ar: { label: "ar-", color: "#b54d2f" },
@@ -8,44 +11,11 @@ const CATEGORY_CONFIG = {
   keine_daten: { label: "keine Daten", color: "#7f889b" },
 };
 
-const seedEntries = [
-  ["Rom", "Latium", 41.9028, 12.4964],
-  ["Mailand", "Lombardei", 45.4642, 9.19],
-  ["Turin", "Piemont", 45.0703, 7.6869],
-  ["Genua", "Ligurien", 44.4056, 8.9463],
-  ["Venedig", "Venetien", 45.4408, 12.3155],
-  ["Triest", "Friaul-Julisch Venetien", 45.6495, 13.7768],
-  ["Bologna", "Emilia-Romagna", 44.4949, 11.3426],
-  ["Florenz", "Toskana", 43.7696, 11.2558],
-  ["Perugia", "Umbrien", 43.1107, 12.3908],
-  ["Ancona", "Marken", 43.6158, 13.5189],
-  ["Neapel", "Kampanien", 40.8518, 14.2681],
-  ["Bari", "Apulien", 41.1171, 16.8719],
-  ["Potenza", "Basilikata", 40.6401, 15.8051],
-  ["Catanzaro", "Kalabrien", 38.9098, 16.5877],
-  ["Palermo", "Sizilien", 38.1157, 13.3615],
-  ["Cagliari", "Sardinien", 39.2238, 9.1217],
-  ["Trient", "Trentino-Suedtirol", 46.0748, 11.1217],
-  ["L'Aquila", "Abruzzen", 42.3498, 13.3995],
-].map(([ort, region, breitengrad, laengengrad], index) => ({
-  id: `seed-${index + 1}`,
-  ort,
-  region,
-  breitengrad,
-  laengengrad,
-  kategorie: "keine_daten",
-  belegform: "",
-  lemma: "",
-  quelle: "",
-  kommentar: "",
-  status: "offen",
-  aktualisiertAm: new Date().toISOString(),
-}));
-
 const state = {
   entries: [],
   filteredEntries: [],
   selectedId: null,
+  loading: false,
   filters: {
     suche: "",
     region: "alle",
@@ -77,11 +47,13 @@ const elements = {
   source: document.getElementById("source-input"),
   comment: document.getElementById("comment-input"),
   updatedAt: document.getElementById("updated-at"),
+  syncStatus: document.getElementById("sync-status"),
   newEntryButton: document.getElementById("new-entry-button"),
   resetFormButton: document.getElementById("reset-form-button"),
   resetFiltersButton: document.getElementById("reset-filters-button"),
   deleteEntryButton: document.getElementById("delete-entry-button"),
   fitMapButton: document.getElementById("fit-map-button"),
+  reloadDataButton: document.getElementById("reload-data-button"),
   exportCsvButton: document.getElementById("export-csv-button"),
   exportXlsxButton: document.getElementById("export-xlsx-button"),
 };
@@ -95,19 +67,79 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const markerLayer = L.layerGroup().addTo(map);
 const markerRefs = new Map();
 
-function loadEntries() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return [...seedEntries];
-  try {
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : [...seedEntries];
-  } catch {
-    return [...seedEntries];
-  }
+function setSyncStatus(message, stateName = "loading") {
+  elements.syncStatus.textContent = message;
+  elements.syncStatus.dataset.state = stateName;
 }
 
-function saveEntries() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.entries));
+function getRequestHeaders(hasBody = false, extraHeaders = {}) {
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    ...extraHeaders,
+  };
+  if (hasBody) headers["Content-Type"] = "application/json";
+  return headers;
+}
+
+async function supabaseRequest(path = "", options = {}) {
+  const method = options.method || "GET";
+  const hasBody = options.body !== undefined;
+  const response = await fetch(`${SUPABASE_TABLE_URL}${path}`, {
+    method,
+    headers: getRequestHeaders(hasBody, options.headers || {}),
+    body: hasBody ? JSON.stringify(options.body) : undefined,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Supabase-Fehler (${response.status})`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+function mapRowToEntry(row) {
+  return {
+    id: row.id,
+    ort: row.ort,
+    region: row.region,
+    breitengrad: Number(row.breitengrad),
+    laengengrad: Number(row.laengengrad),
+    kategorie: row.kategorie,
+    belegform: row.belegform || "",
+    lemma: row.lemma || "",
+    quelle: row.quelle || "",
+    kommentar: row.kommentar || "",
+    status: row.status,
+    aktualisiertAm: row.aktualisiert_am,
+  };
+}
+
+function mapEntryToRow(entry) {
+  return {
+    id: entry.id,
+    ort: entry.ort,
+    region: entry.region,
+    breitengrad: entry.breitengrad,
+    laengengrad: entry.laengengrad,
+    kategorie: entry.kategorie,
+    belegform: entry.belegform || null,
+    lemma: entry.lemma || null,
+    quelle: entry.quelle || null,
+    kommentar: entry.kommentar || null,
+    status: entry.status,
+  };
+}
+
+async function loadEntriesFromSupabase() {
+  state.loading = true;
+  setSyncStatus("Lade gemeinsamen Datenbestand aus Supabase.", "loading");
+  const rows = await supabaseRequest("?select=*&order=ort.asc&order=region.asc");
+  state.entries = rows.map(mapRowToEntry);
+  state.loading = false;
+  setSyncStatus(`${state.entries.length} Orte aus der gemeinsamen Datenbank geladen.`, "success");
 }
 
 function getStats() {
@@ -340,7 +372,7 @@ function exportXlsx() {
 
 function readFormData() {
   return {
-    id: elements.entryId.value || `entry-${crypto.randomUUID()}`,
+    id: elements.entryId.value || crypto.randomUUID(),
     ort: elements.city.value.trim(),
     region: elements.region.value.trim(),
     breitengrad: Number(elements.lat.value),
@@ -355,24 +387,68 @@ function readFormData() {
   };
 }
 
-function upsertEntry(event) {
-  event.preventDefault();
-  const entry = readFormData();
+function upsertLocalEntry(entry) {
   const existingIndex = state.entries.findIndex((item) => item.id === entry.id);
   if (existingIndex >= 0) state.entries.splice(existingIndex, 1, entry);
   else state.entries.push(entry);
-  state.selectedId = entry.id;
-  saveEntries();
-  refreshView();
-  fillForm(entry);
-  map.flyTo([entry.breitengrad, entry.laengengrad], Math.max(map.getZoom(), 7), { duration: 0.5 });
 }
 
-function deleteEntry() {
+async function upsertEntry(event) {
+  event.preventDefault();
+  const entry = readFormData();
+  const exists = state.entries.some((item) => item.id === entry.id);
+  setSyncStatus(`${exists ? "Aktualisiere" : "Speichere"} Datensatz in Supabase.`, "loading");
+
+  try {
+    const path = exists ? `?id=eq.${encodeURIComponent(entry.id)}` : "";
+    const rows = await supabaseRequest(path, {
+      method: exists ? "PATCH" : "POST",
+      body: mapEntryToRow(entry),
+      headers: { Prefer: "return=representation" },
+    });
+    const savedEntry = mapRowToEntry(Array.isArray(rows) ? rows[0] : rows);
+    upsertLocalEntry(savedEntry);
+    state.selectedId = savedEntry.id;
+    refreshView();
+    fillForm(savedEntry);
+    map.flyTo([savedEntry.breitengrad, savedEntry.laengengrad], Math.max(map.getZoom(), 7), { duration: 0.5 });
+    setSyncStatus(`Datensatz fuer ${savedEntry.ort} wurde gemeinsam gespeichert.`, "success");
+  } catch (error) {
+    setSyncStatus(`Speichern fehlgeschlagen: ${error.message}`, "error");
+  }
+}
+
+async function deleteEntry() {
   if (!state.selectedId) return;
-  state.entries = state.entries.filter((entry) => entry.id !== state.selectedId);
-  saveEntries();
-  resetForm();
+  const entry = state.entries.find((item) => item.id === state.selectedId);
+  if (!entry) return;
+
+  setSyncStatus(`Loesche Datensatz fuer ${entry.ort}.`, "loading");
+  try {
+    await supabaseRequest(`?id=eq.${encodeURIComponent(entry.id)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+    state.entries = state.entries.filter((item) => item.id !== entry.id);
+    resetForm();
+    setSyncStatus(`Datensatz fuer ${entry.ort} wurde geloescht.`, "success");
+  } catch (error) {
+    setSyncStatus(`Loeschen fehlgeschlagen: ${error.message}`, "error");
+  }
+}
+
+async function reloadEntries() {
+  try {
+    await loadEntriesFromSupabase();
+    if (state.selectedId && !state.entries.some((entry) => entry.id === state.selectedId)) {
+      state.selectedId = null;
+      fillForm(null);
+    }
+    refreshView();
+    fitMapToFiltered();
+  } catch (error) {
+    setSyncStatus(`Laden fehlgeschlagen: ${error.message}`, "error");
+  }
 }
 
 function bindEvents() {
@@ -407,6 +483,7 @@ function bindEvents() {
   elements.resetFormButton.addEventListener("click", resetForm);
   elements.deleteEntryButton.addEventListener("click", deleteEntry);
   elements.fitMapButton.addEventListener("click", fitMapToFiltered);
+  elements.reloadDataButton.addEventListener("click", reloadEntries);
   elements.exportCsvButton.addEventListener("click", exportCsv);
   elements.exportXlsxButton.addEventListener("click", exportXlsx);
   elements.resetFiltersButton.addEventListener("click", () => {
@@ -431,12 +508,12 @@ function bindEvents() {
   });
 }
 
-function init() {
-  state.entries = loadEntries();
+async function init() {
   bindEvents();
   fillForm(null);
-  refreshView();
-  fitMapToFiltered();
+  renderLegend();
+  renderStats();
+  await reloadEntries();
 }
 
 init();
