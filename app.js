@@ -783,7 +783,7 @@ function exportCsv() {
     .concat(
       rows.map((row) =>
         headers
-          .map((header) => `\"${String(row[header] ?? \"\").replace(/\"/g, '\"\"')}\"`)
+          .map((header) => `"${String(row[header] ?? "").replace(/"/g, '""')}"`)
           .join(";"),
       ),
     )
