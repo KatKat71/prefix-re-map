@@ -71,22 +71,85 @@
             </label>
 
             <label class="field">
-              <span>Status</span>
-              <select id="status-filter">
-                <option value="alle">Alle</option>
-                <option value="offen">Offen</option>
-                <option value="geprueft">Geprueft</option>
+              <span>Kartenmodus</span>
+              <select id="map-mode">
+                <option value="praefix">Praefix-Form</option>
+                <option value="analyse">Analyse-Typ</option>
               </select>
             </label>
 
             <fieldset class="checkbox-group">
-              <legend>Kategorien</legend>
+              <legend>Praefix-Form</legend>
               <label><input type="checkbox" value="ar" checked /> ar-</label>
-              <label><input type="checkbox" value="re_ri" checked /> re-/ri-</label>
-              <label><input type="checkbox" value="beide" checked /> beide</label>
+              <label><input type="checkbox" value="re" checked /> re-</label>
+              <label><input type="checkbox" value="ri" checked /> ri-</label>
+              <label><input type="checkbox" value="r" checked /> r-</label>
+              <label><input type="checkbox" value="are" checked /> are-</label>
+              <label><input type="checkbox" value="arre" checked /> arre-</label>
               <label><input type="checkbox" value="unklar" checked /> unklar</label>
-              <label><input type="checkbox" value="keine_daten" checked /> keine Daten</label>
             </fieldset>
+
+            <label class="field">
+              <span>Analyse-Typ</span>
+              <select id="analysis-filter">
+                <option value="alle">Alle</option>
+                <option value="basis_re">basis_re</option>
+                <option value="re_synkope_r">re_synkope_r</option>
+                <option value="r_prothese_ar">r_prothese_ar</option>
+                <option value="re_prothese_are_arre">re_prothese_are_arre</option>
+                <option value="are_synkope_ar">are_synkope_ar</option>
+                <option value="unklar">unklar</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Diasystematik</span>
+              <select id="diasystematik-filter">
+                <option value="alle">Alle</option>
+                <option value="ohne_markierung">ohne_markierung</option>
+                <option value="archaisch">archaisch</option>
+                <option value="veraltet">veraltet</option>
+                <option value="selten">selten</option>
+                <option value="volkstuemlich">volkstuemlich</option>
+                <option value="italianisiert">italianisiert</option>
+                <option value="latinisierend">latinisierend</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Zeitstufe</span>
+              <select id="zeitstufe-filter">
+                <option value="alle">Alle</option>
+                <option value="undatiert">undatiert</option>
+                <option value="modern">modern</option>
+                <option value="fruehneuzeit">fruehneuzeit</option>
+                <option value="mittelalter">mittelalter</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>REW-Status</span>
+              <select id="rew-filter">
+                <option value="alle">Alle</option>
+                <option value="unsicher">unsicher</option>
+                <option value="im_rew">im_rew</option>
+                <option value="nicht_im_rew">nicht_im_rew</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Sicherheit</span>
+              <select id="sicherheit-filter">
+                <option value="alle">Alle</option>
+                <option value="wahrscheinlich">ab wahrscheinlich</option>
+                <option value="sicher">nur sicher</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Quelle (Kurztitel)</span>
+              <input id="quelle-filter" type="search" placeholder="z. B. Boerio" />
+            </label>
           </section>
 
           <section class="card">
@@ -120,8 +183,8 @@
                 <tr>
                   <th>Ort</th>
                   <th>Region</th>
-                  <th>Kategorie</th>
-                  <th>Status</th>
+                  <th>Karte</th>
+                  <th>Belege</th>
                 </tr>
               </thead>
               <tbody id="table-body"></tbody>
@@ -132,14 +195,14 @@
         <section class="form-panel card">
           <div class="section-head">
             <div>
-              <p class="section-label">Befunderfassung</p>
-              <h2 id="form-title">Ort bearbeiten</h2>
+              <p class="section-label">Ort</p>
+              <h2 id="form-title">Ort und Belege</h2>
             </div>
-            <button id="reset-form-button" class="text-button" type="button">Formular leeren</button>
+            <button id="reset-form-button" class="text-button" type="button">Neuen Ort</button>
           </div>
 
-          <form id="entry-form" class="entry-form">
-            <input id="entry-id" type="hidden" />
+          <form id="place-form" class="entry-form">
+            <input id="place-id" type="hidden" />
 
             <div class="field-grid">
               <label class="field">
@@ -150,51 +213,151 @@
                 <span>Region</span>
                 <input id="region-input" name="region" type="text" required />
               </label>
-              <label class="field">
-                <span>Kategorie</span>
-                <select id="category-input" name="kategorie" required>
-                  <option value="ar">ar-</option>
-                  <option value="re_ri">re-/ri-</option>
-                  <option value="beide">beide</option>
-                  <option value="unklar">unklar</option>
-                  <option value="keine_daten">keine Daten</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Status</span>
-                <select id="entry-status-input" name="status" required>
-                  <option value="offen">offen</option>
-                  <option value="geprueft">geprueft</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Lemma</span>
-                <input id="lemma-input" name="lemma" type="text" />
-              </label>
-              <label class="field">
-                <span>Belegform</span>
-                <input id="attestation-input" name="belegform" type="text" />
-              </label>
-            </div>
-
-            <label class="field">
-              <span>Quelle</span>
-              <input id="source-input" name="quelle" type="text" placeholder="z. B. Ortsgrammatik, Korpus, Atlas" />
-            </label>
-
-            <label class="field">
-              <span>Kommentar</span>
-              <textarea id="comment-input" name="kommentar" rows="5" placeholder="Methodische Hinweise, Unsicherheiten, Vergleichsbefunde"></textarea>
-            </label>
-
-            <div class="form-meta">
-              <p id="updated-at" class="section-hint">Noch nicht gespeichert.</p>
-              <p class="section-hint">Neue Orte uebernehmen intern die aktuelle Kartenposition.</p>
             </div>
 
             <div class="form-actions">
-              <button class="button button-primary" type="submit">Speichern</button>
-              <button id="delete-entry-button" class="button button-danger" type="button">Loeschen</button>
+              <button id="save-place-button" class="button button-primary" type="submit">Ort speichern</button>
+              <button id="delete-place-button" class="button button-danger" type="button">Ort loeschen</button>
+            </div>
+
+            <div class="form-meta">
+              <p id="place-updated-at" class="section-hint">Noch nicht gespeichert.</p>
+              <p class="section-hint">Neue Orte uebernehmen intern die aktuelle Kartenposition.</p>
+            </div>
+          </form>
+
+          <div class="section-head">
+            <div>
+              <p class="section-label">Belege</p>
+              <h2>Belegliste</h2>
+            </div>
+            <button id="new-beleg-button" class="text-button" type="button">Neuer Beleg</button>
+          </div>
+
+          <p id="belege-count" class="section-hint"></p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Lemma</th>
+                  <th>Praefix</th>
+                  <th>Analyse</th>
+                  <th>Diasys</th>
+                  <th>Zeit</th>
+                  <th>Sicherh.</th>
+                  <th>Quelle</th>
+                </tr>
+              </thead>
+              <tbody id="belege-body"></tbody>
+            </table>
+          </div>
+
+          <div class="section-head">
+            <div>
+              <p class="section-label">Beleg</p>
+              <h2 id="beleg-form-title">Neuen Beleg erfassen</h2>
+            </div>
+            <button id="reset-beleg-button" class="text-button" type="button">Formular leeren</button>
+          </div>
+
+          <form id="beleg-form" class="entry-form" autocomplete="off">
+            <input id="beleg-id" type="hidden" />
+
+            <div class="field-grid">
+              <label class="field">
+                <span>Lemma</span>
+                <input id="beleg-lemma" name="lemma" type="text" />
+              </label>
+              <label class="field">
+                <span>REW-Status</span>
+                <select id="beleg-rew" name="rew_status" required>
+                  <option value="unsicher">unsicher</option>
+                  <option value="im_rew">im_rew</option>
+                  <option value="nicht_im_rew">nicht_im_rew</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Praefix-Form</span>
+                <select id="beleg-praefix" name="praefix_form" required>
+                  <option value="ar">ar</option>
+                  <option value="re">re</option>
+                  <option value="ri">ri</option>
+                  <option value="r">r</option>
+                  <option value="are">are</option>
+                  <option value="arre">arre</option>
+                  <option value="unklar">unklar</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Analyse-Typ</span>
+                <select id="beleg-analyse" name="analyse_typ" required>
+                  <option value="unklar">unklar</option>
+                  <option value="basis_re">basis_re</option>
+                  <option value="re_synkope_r">re_synkope_r</option>
+                  <option value="r_prothese_ar">r_prothese_ar</option>
+                  <option value="re_prothese_are_arre">re_prothese_are_arre</option>
+                  <option value="are_synkope_ar">are_synkope_ar</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Diasystematik</span>
+                <select id="beleg-diasystematik" name="diasystematik" required>
+                  <option value="ohne_markierung">ohne_markierung</option>
+                  <option value="archaisch">archaisch</option>
+                  <option value="veraltet">veraltet</option>
+                  <option value="selten">selten</option>
+                  <option value="volkstuemlich">volkstuemlich</option>
+                  <option value="italianisiert">italianisiert</option>
+                  <option value="latinisierend">latinisierend</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Zeitstufe</span>
+                <select id="beleg-zeitstufe" name="zeitstufe" required>
+                  <option value="undatiert">undatiert</option>
+                  <option value="modern">modern</option>
+                  <option value="fruehneuzeit">fruehneuzeit</option>
+                  <option value="mittelalter">mittelalter</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Sicherheit</span>
+                <select id="beleg-sicherheit" name="sicherheit" required>
+                  <option value="unsicher">unsicher</option>
+                  <option value="wahrscheinlich">wahrscheinlich</option>
+                  <option value="sicher">sicher</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Belegform</span>
+                <input id="beleg-belegform" name="belegform" type="text" />
+              </label>
+            </div>
+
+            <div class="field-grid">
+              <label class="field">
+                <span>Quelle (Kurztitel)</span>
+                <input id="beleg-quelle" name="quelle_kurztitel" type="text" placeholder="z. B. Boerio" />
+              </label>
+              <label class="field">
+                <span>Seitenangabe</span>
+                <input id="beleg-seite" name="seitenangabe" type="text" placeholder="z. B. 123" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Kommentar</span>
+              <textarea id="beleg-kommentar" name="kommentar" rows="4"></textarea>
+            </label>
+
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">Beleg speichern</button>
+              <button id="delete-beleg-button" class="button button-danger" type="button">Beleg loeschen</button>
+            </div>
+
+            <div class="form-meta">
+              <p id="beleg-updated-at" class="section-hint">Noch nicht gespeichert.</p>
             </div>
           </form>
         </section>
