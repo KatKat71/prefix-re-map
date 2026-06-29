@@ -99,6 +99,7 @@ const elements = {
   belegZeitstufe: document.getElementById("beleg-zeitstufe"),
   belegSicherheit: document.getElementById("beleg-sicherheit"),
   belegBelegform: document.getElementById("beleg-belegform"),
+  belegItalienisch: document.getElementById("beleg-italienisch"),
   belegQuelle: document.getElementById("beleg-quelle"),
   belegSeite: document.getElementById("beleg-seite"),
   belegKommentar: document.getElementById("beleg-kommentar"),
@@ -170,6 +171,7 @@ function mapBelegRow(row) {
     lemma: row.lemma || "",
     rewStatus: row.rew_status,
     belegform: row.belegform || "",
+    italienisch: row.italienisch || "",
     praefixForm: row.praefix_form,
     analyseTyp: row.analyse_typ,
     diasystematik: row.diasystematik,
@@ -190,6 +192,7 @@ function mapBelegToRow(beleg) {
     lemma: beleg.lemma || null,
     rew_status: beleg.rewStatus,
     belegform: beleg.belegform || null,
+    italienisch: beleg.italienisch || null,
     praefix_form: beleg.praefixForm,
     analyse_typ: beleg.analyseTyp,
     diasystematik: beleg.diasystematik,
@@ -238,6 +241,7 @@ function applyBelegFilters() {
       place?.region,
       beleg.lemma,
       beleg.belegform,
+      beleg.italienisch,
       beleg.quelleKurztitel,
       beleg.seitenangabe,
       beleg.kommentar,
@@ -453,6 +457,7 @@ function renderBelegeTable() {
       (beleg) => `
         <tr data-id="${beleg.id}" class="${state.selectedBelegId === beleg.id ? "is-active" : ""}">
           <td>${beleg.lemma || ""}</td>
+          <td>${beleg.italienisch || ""}</td>
           <td>${beleg.praefixForm}</td>
           <td>${beleg.analyseTyp}</td>
           <td>${beleg.diasystematik}</td>
@@ -490,6 +495,7 @@ function fillBelegForm(beleg) {
   elements.belegZeitstufe.value = beleg?.zeitstufe || "undatiert";
   elements.belegSicherheit.value = beleg?.sicherheit || "unsicher";
   elements.belegBelegform.value = beleg?.belegform || "";
+  elements.belegItalienisch.value = beleg?.italienisch || "";
   elements.belegQuelle.value = beleg?.quelleKurztitel || "";
   elements.belegSeite.value = beleg?.seitenangabe || "";
   elements.belegKommentar.value = beleg?.kommentar || "";
@@ -659,6 +665,7 @@ function readBelegForm() {
     lemma: elements.belegLemma.value.trim(),
     rewStatus: elements.belegRew.value,
     belegform: elements.belegBelegform.value.trim(),
+    italienisch: elements.belegItalienisch.value.trim(),
     praefixForm: elements.belegPraefix.value,
     analyseTyp: elements.belegAnalyse.value,
     diasystematik: elements.belegDiasystematik.value,
@@ -749,6 +756,7 @@ function exportRows() {
         Lemma: beleg.lemma,
         REW_Status: beleg.rewStatus,
         Belegform: beleg.belegform,
+        Italienisch: beleg.italienisch,
         Praefix_Form: beleg.praefixForm,
         Analyse_Typ: beleg.analyseTyp,
         Diasystematik: beleg.diasystematik,
